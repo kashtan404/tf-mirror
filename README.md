@@ -53,17 +53,24 @@ chmod +x tf-mirror-linux-amd64
 ```sh
 git clone https://github.com/kastna404/tf-mirror.git
 cd tf-mirror
-go build -o tf-mirror ./cmd/tf-mirror
-./tf-mirror --help
+make build
+./bin/tf-mirror --help
 ```
 
 ### 3. Manual Docker Run
 
 ```sh
+# downloader mode
 docker run --rm -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:latest \
   --mode downloader --download-path /data --provider-filter=hashicorp/aws
+
+# server mode without TLS (Only for preview. Terraform decline download providers by http)
 docker run --rm -p 8080:8080 -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:latest \
   --mode server --data-path /data --listen-port 8080
+
+# server mode with TLS
+docker run --rm -p 443:443 -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:latest \
+  --mode server --data-path /data --listen-host 0.0.0.0 --listen-port 443 --enable-tls --tls-crt /tls/tls.crt --tls-key /tls/tls.key --hostname tf-mirror.local
 ```
 
 ### 4. Using Docker Compose
@@ -98,6 +105,50 @@ helm install tf-mirror oci://registry-1.docker.io/ademidovx/tf-mirror --version 
   --set ingress.enabled=true
 ```
 See `helm/values.yaml` for all options.
+
+### 5.1 Helm values complete example
+
+```yaml
+kind: Deployment
+server:
+  port: 8080
+  args:
+    - --mode=server
+    - --data-path=/data
+    - --listen-host=0.0.0.0
+    - --listen-port=8080
+downloader:
+  args:
+    - --mode=downloader
+    - --download-path=/data
+    - --proxy=http://proxy:8080 # if needed
+    - --check-period=24
+    - --provider-filter=hashicorp/template>2.2.0,hashicorp/helm
+    - --platform-filter=linux_amd64,darwin_amd64
+    - --max-attempts=5
+    - --download-timeout=180
+    - --download-binaries=consul>1.21.3,nomad>1.6.0
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: tf-mirror.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: tf-mirror-tls
+
+# data presistence
+data:
+  persistentvolume: true
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  storageClassName: "exampleClassname"
+```
+
 
 ---
 
