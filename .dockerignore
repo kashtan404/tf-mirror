@@ -1,0 +1,8 @@
+docker/docker-compose.*
+docker/Dockerfile
+
+helm/*
+data/*
+openssl/*
+bin/*
+examples/*

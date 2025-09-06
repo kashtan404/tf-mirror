@@ -1,0 +1,48 @@
+[Unit]
+Description=Terraform Registry Mirror Downloader
+Documentation=https://github.com/your-repo/tf-mirror
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=terraform
+Group=terraform
+WorkingDirectory=/opt/tf-mirror
+ExecStart=/opt/tf-mirror/bin/tf-mirror --mode downloader --download-path /var/lib/tf-mirror
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+
+# Environment variables
+Environment=TF_MIRROR_MODE=downloader
+Environment=CHECK_PERIOD=6
+# Environment=PROXY=http://proxy.example.com:8080
+# Environment=PROVIDER_FILTER=hashicorp/aws,hashicorp/helm
+# Environment=PLATFORM_FILTER=linux_amd64,darwin_arm64
+# Environment=DEBUG=1
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/tf-mirror
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tf-mirror-downloader
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=2G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

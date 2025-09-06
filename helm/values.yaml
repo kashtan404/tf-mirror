@@ -1,0 +1,216 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# Kind of workload: Deployment or StatefulSet
+kind: Deployment
+
+imagePullSecrets: []
+
+# Image configuration
+image:
+  repository: docker.io/ademidovx/tf-mirror
+  tag: 1.0.0
+  pullPolicy: IfNotPresent
+
+## Pod termination grace period
+## ref: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/
+terminationGracePeriodSeconds: 60
+
+## Deployment strategy definition
+## ref: https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#strategy
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 1
+
+# Downloader configuration
+downloader:
+  # Command-line arguments for downloader mode
+  args:
+    # - --mode=downloader
+    # - --download-path=/data
+    # - --proxy=http://proxy:8080
+    # - --check-period=24
+    # - --provider-filter=hashicorp/template>2.2.0,hashicorp/helm
+    # - --platform-filter=linux_amd64,darwin_amd64
+    # - --max-attempts=5
+    # - --download-timeout=180
+    # - --download-binaries=consul>1.21.3,nomad>1.6.0
+    # - --debug
+  # Environment variables for downloader mode
+  env:
+    # - name: TF_MIRROR_MODE
+    #   value: downloader
+    # - name: PROXY
+    #   value: "http://proxy:8080"
+    # - name: CHECK_PERIOD
+    #   value: "24"
+    # - name: DOWNLOAD_PATH
+    #   value: /data
+    # - name: PROVIDER_FILTER
+    #   value: "hashicorp/template>2.2.0,hashicorp/helm"
+    # - name: PLATFORM_FILTER
+    #   value: "linux_amd64,darwin_amd64"
+    # - name: MAX_ATTEMPTS
+    #   value: "5"
+    # - name: DOWNLOAD_TIMEOUT
+    #   value: "180"
+    # - name: DOWNLOAD_BINARIES
+    #   value: "consul>1.21.3,nomad>1.6.0"
+    # - name: DEBUG
+    #   value: "false"
+
+# Server configuration
+server:
+  port: 8080
+  diableHealthCheck: false
+  exporter:
+    enable: true
+  tls:
+    enable: false
+    crt: ""
+    key: ""
+    existingSecret: ""
+  # Command-line arguments for server mode
+  args:
+    # - --mode=server
+    # - --data-path=/data
+    # - --listen-host=0.0.0.0
+    # - --listen-port=8080
+    # - --hostname=tf-mirror.local
+    # - --enable-tls
+    # - --tls-crt=/tls/tls.crt
+    # - --tls-key=/tls/tls.key
+    # - --debug
+  # Environment variables for server mode
+  env:
+    # - name: TF_MIRROR_MODE
+    #   value: server
+    # - name: DATA_PATH
+    #   value: /data
+    # - name: LISTEN_HOST
+    #   value: "0.0.0.0"
+    # - name: LISTEN_PORT
+    #   value: "8080"
+    # - name: HOSTNAME
+    #   value: "tf-mirror.local"
+    # - name: ENABLE_TLS
+    #   value: "false"
+    # - name: TLS_CRT
+    #   value: "/tls/tls.crt"
+    # - name: TLS_KEY
+    #   value: "/tls/tls.key"
+    # - name: DEBUG
+    #   value: "false"
+
+# Shared data volume
+data:
+  persistentvolume: false
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  storageClassName: ""
+
+ingress:
+  ## @param ingress.enabled Set to true to enable ingress record generation
+  ##
+  enabled: false
+  ## @param ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
+  ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
+  ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
+  ##
+  ingressClassName: ""
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host: tf-mirror.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+    - secretName: tf-mirror-ingress-tls
+      hosts:
+        - tf-mirror.local
+
+
+## Compute Resources
+## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+resources: {}
+  # limits:
+  #   cpu: 500m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+## Pod Node assignment
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+nodeSelector: {}
+
+## Node Taints and Tolerations for pod-node cheduling through attraction/repelling
+## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
+tolerations: []
+#  - key: "key"
+#    operator: "Equal|Exists"
+#    value: "value"
+#    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
+
+## Node Affinity for pod-node scheduling constraints
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+affinity: {}
+
+## Additional labels to add to the pod container metadata
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+podLabels: {}
+#  key: value
+
+## Additional annotations to add to the pod container metadata
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+podAnnotations: {}
+#  key: value
+
+## Service configuration
+## ref: https://kubernetes.io/docs/concepts/services-networking/service/
+service:
+  type: ClusterIP   # can be 'LoadBalancer'
+
+  port: 80
+
+  ## Service ClusterIP
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
+  clusterIP: ""
+
+  ## LoadBalancer IP
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer
+  loadBalancerIP: ""
+
+  ## Source IP ranges permitted to access Network Load Balancer
+  # ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/
+  loadBalancerSourceRanges: []
+
+  ## Service annotations
+  ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+  annotations: {}
+
+  servicenameOverride: ""
+  useHostPorts: false
+  # externalIPs:
+  # - 127.0.0.1
+
+  ## Service externalTrafficPolicy
+  ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#external-traffic-policy
+  # externalTrafficPolicy: Cluster
+
+
+## Configure Service Account
+## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+# -- Additional volumes for the ownCloud container and cronjob.
+extraVolumes: []
+# -- Additional volume mounts for the ownCloud container and cronjob.
+extraVolumeMounts: []

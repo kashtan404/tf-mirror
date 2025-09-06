@@ -1,0 +1,109 @@
+version: "3.8"
+
+services:
+  # Downloader service - fetches providers from registry.terraform.io
+  downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tf-mirror-downloader
+    volumes:
+      - tf_mirror_data:/data
+    environment:
+      - TF_MIRROR_MODE=downloader
+      - DEBUG=${DEBUG:-}
+      - PROXY=${PROXY:-}
+      - CHECK_PERIOD=${CHECK_PERIOD:-6}
+      - PROVIDER_FILTER=${PROVIDER_FILTER:-}
+      - PLATFORM_FILTER=${PLATFORM_FILTER:-}
+      - CHECK_PERIOD=24
+      - DOWNLOAD_PATH=/data
+    restart: unless-stopped
+    networks:
+      - tf-mirror-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Server service - hosts the registry mirror
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tf-mirror-server
+    ports:
+      - "${LISTEN_PORT:-8080}:8080"
+    volumes:
+      - tf_mirror_data:/data
+      - ${TLS_CERT_PATH:-/dev/null}:/etc/ssl/certs/terraform-mirror.crt:ro
+      - ${TLS_KEY_PATH:-/dev/null}:/etc/ssl/private/terraform-mirror.key:ro
+    environment:
+      - TF_MIRROR_MODE=server
+      - DEBUG=${DEBUG:-}
+      - HOSTNAME=${HOSTNAME:-localhost}
+      - ENABLE_TLS=${ENABLE_TLS:-false}
+      - TLS_CRT=${TLS_CRT:-}
+      - TLS_KEY=${TLS_KEY:-}
+      - DATA_PATH=/data
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=8080
+    restart: unless-stopped
+    networks:
+      - tf-mirror-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Nginx reverse proxy for HTTPS termination
+  nginx:
+    image: nginx:alpine
+    container_name: tf-mirror-nginx
+    profiles:
+      - with-nginx
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ${SSL_CERT_PATH:-}:/etc/ssl/certs/server.crt:ro
+      - ${SSL_KEY_PATH:-}:/etc/ssl/private/server.key:ro
+    depends_on:
+      - server
+    restart: unless-stopped
+    networks:
+      - tf-mirror-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  tf_mirror_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_PATH:-./data}
+
+networks:
+  tf-mirror-network:
+    driver: bridge

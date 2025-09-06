@@ -1,0 +1,55 @@
+[Unit]
+Description=Terraform Registry Mirror Server
+Documentation=https://github.com/your-repo/tf-mirror
+After=network-online.target
+Wants=network-online.target
+Requires=tf-mirror-downloader.service
+
+[Service]
+Type=simple
+User=terraform
+Group=terraform
+WorkingDirectory=/opt/tf-mirror
+ExecStart=/opt/tf-mirror/bin/tf-mirror --mode server --data-path /var/lib/tf-mirror --listen-port 8080
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+# Environment variables
+Environment=TF_MIRROR_MODE=server
+Environment=LISTEN_HOST=0.0.0.0
+Environment=LISTEN_PORT=8080
+Environment=HOSTNAME=terraform-mirror.local
+# Environment=ENABLE_TLS=true
+# Environment=TLS_CRT=/etc/ssl/certs/terraform-mirror.crt
+# Environment=TLS_KEY=/etc/ssl/private/terraform-mirror.key
+# Environment=DEBUG=1
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/lib/tf-mirror
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tf-mirror-server
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=1G
+CPUQuota=100%
+
+# Health check (optional with systemd-notify)
+# NotifyAccess=main
+# WatchdogSec=60
+
+[Install]
+WantedBy=multi-user.target

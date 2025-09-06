@@ -1,0 +1,20 @@
+{{- if eq .Values.kind "Deployment" }}
+{{- if .Values.data.persistentvolume }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "tf-mirror.fullname" . }}-data
+  labels:
+    {{- include "tf-mirror.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.data.accessMode | default "ReadWriteOnce" }}
+  resources:
+    requests:
+      storage: {{ .Values.data.size | default "10Gi" }}
+  {{- if .Values.data.storageClassName }}
+  storageClassName: {{ .Values.data.storageClassName }}
+  {{- end }}
+{{- end }}
+{{- end }}
