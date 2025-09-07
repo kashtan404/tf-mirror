@@ -69,7 +69,7 @@ docker run --rm -p 8080:8080 -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:
   --mode server --data-path /data --listen-port 8080
 
 # server mode with TLS
-docker run --rm -p 443:443 -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:latest \
+docker run --rm -p 443:443 -v $(pwd)/tls:/tls -v $(pwd)/data:/data docker.io/ademidovx/tf-mirror:latest \
   --mode server --data-path /data --listen-host 0.0.0.0 --listen-port 443 --enable-tls --tls-crt /tls/tls.crt --tls-key /tls/tls.key --hostname tf-mirror.local
 ```
 
@@ -328,13 +328,14 @@ provider_installation {
 
 ```
 /data/
-  ├── hashicorp/
-  │   ├── aws/
-  │   │   └── linux_amd64.zip
-  |   |   └── index.json
-  |   |   └── 5.0.0.json
-  │   └── helm/
-  │       └── ...
+  ├── registry.terraform.io
+  │   └── hashicorp/
+  │       ├── aws/
+  │       │   └── linux_amd64.zip
+  │       |   └── index.json
+  │       |   └── 5.0.0.json
+  │       └── helm/
+  │           └── ...
   ├── terraform/
   │   └── terraform_1.6.0_linux_amd64.zip
   └── .tf-mirror-metadata.json
